@@ -1,0 +1,132 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  ADMIN
+  PROFESSOR
+  STUDENT
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  student      Student?
+  professor    Professor?
+}
+
+model Department {
+  id         Int         @id @default(autoincrement())
+  name       String      @unique
+  code       String      @unique
+  createdAt  DateTime    @default(now())
+
+  students   Student[]
+  professors Professor[]
+  courses    Course[]
+}
+
+model Student {
+  id               Int      @id @default(autoincrement())
+  userId           Int      @unique
+  registrationNo   String   @unique
+  departmentId     Int
+  semester         Int
+  createdAt        DateTime @default(now())
+
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department       Department @relation(fields: [departmentId], references: [id])
+
+  enrollments      Enrollment[]
+  attendanceRecords AttendanceRecord[]
+}
+
+model Professor {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique
+  employeeNo   String   @unique
+  departmentId Int
+  createdAt    DateTime @default(now())
+
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  department       Department @relation(fields: [departmentId], references: [id])
+
+  courses          Course[]
+  attendanceSessions AttendanceSession[]
+}
+
+model Course {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  name         String
+  creditHours  Int
+  departmentId Int
+  professorId  Int
+  createdAt    DateTime @default(now())
+
+  department       Department @relation(fields: [departmentId], references: [id])
+  professor        Professor  @relation(fields: [professorId], references: [id])
+
+  enrollments      Enrollment[]
+  attendanceSessions AttendanceSession[]
+}
+
+model Enrollment {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  courseId  Int
+  enrolledAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, courseId])
+}
+
+model AttendanceSession {
+  id          Int      @id @default(autoincrement())
+  courseId    Int
+  professorId Int
+  token       String   @unique
+  startedAt   DateTime @default(now())
+  expiresAt   DateTime
+  isActive    Boolean  @default(true)
+
+  course    Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  professor Professor @relation(fields: [professorId], references: [id])
+
+  attendanceRecords AttendanceRecord[]
+}
+
+model AttendanceRecord {
+  id          Int              @id @default(autoincrement())
+  sessionId   Int
+  studentId   Int
+  status      AttendanceStatus @default(PRESENT)
+  markedAt    DateTime         @default(now())
+
+  session AttendanceSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  student Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, studentId])
+}
