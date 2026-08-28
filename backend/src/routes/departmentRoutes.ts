@@ -15,10 +15,14 @@ router.post(
   createDepartment
 );
 
+// router.get(
+//   "/",
+//   authenticate,
+//   authorize("ADMIN"),
+//   getDepartments
+// );
 router.get(
   "/",
-  authenticate,
-  authorize("ADMIN"),
   getDepartments
 );
 
